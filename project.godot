@@ -1,6 +1,6 @@
 [application]
 config/name="寿元将尽"
-run/main_scene="res://Main.tscn"
+run/main_scene="res://MainV2.tscn"
 config/features=PackedStringArray("4.3")
 
 [display]
