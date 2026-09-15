@@ -64,17 +64,9 @@ func _ready() -> void:
 	_refresh()
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color("#dce8e3"))
-	draw_rect(Rect2(0, 0, size.x, 260), Color("#b7d0d2"))
-	draw_rect(Rect2(0, 260, size.x, size.y - 260), Color("#d7dfd0"))
-	var mountains = [
-		PackedVector2Array([Vector2(-30,390),Vector2(210,110),Vector2(430,390)]),
-		PackedVector2Array([Vector2(220,400),Vector2(535,70),Vector2(820,400)]),
-		PackedVector2Array([Vector2(650,390),Vector2(980,105),Vector2(1280,390)]),
-		PackedVector2Array([Vector2(1050,400),Vector2(1300,135),Vector2(1530,400)])
-	]
-	for i in mountains.size():
-		draw_colored_polygon(mountains[i], Color(0.28, 0.40, 0.39, 0.12 + i * 0.025))
+	# 背景交给 InkWorldStage 绘制整幅水墨山水，这里保持透明，
+	# 让 UI 以半透明宣纸卡片浮于山水之上。
+	pass
 
 func _new_life(reincarnate: bool) -> void:
 	if reincarnate:
@@ -118,7 +110,7 @@ func _roll_fate() -> Dictionary:
 
 func _build_ui() -> void:
 	queue_redraw()
-	var header:=ColorRect.new(); header.color=Color("#173442"); header.position=Vector2.ZERO; header.size=Vector2(size.x,76); add_child(header)
+	var header:=ColorRect.new(); header.color=Color(Color("#173442"),0.80); header.position=Vector2.ZERO; header.size=Vector2(size.x,76); add_child(header)
 	var title:=_label("寿元将尽",30,Color("#f3ead4")); title.position=Vector2(28,14); title.size=Vector2(190,45); add_child(title)
 	status_label=_label("",17,Color("#e8f0e8")); status_label.position=Vector2(220,15); status_label.size=Vector2(800,45); add_child(status_label)
 	resource_label=_label("",17,Color("#e8d9a6")); resource_label.position=Vector2(1080,17); resource_label.size=Vector2(330,40); add_child(resource_label)
@@ -132,7 +124,7 @@ func _build_ui() -> void:
 
 	var center:=_panel(Vector2(354,96),Vector2(680,610)); add_child(center)
 	center_title=_label("青云宗 · 后山",22,Color("#173442")); center_title.position=Vector2(25,18); center_title.size=Vector2(500,38); center.add_child(center_title)
-	var scene_card:=ColorRect.new(); scene_card.color=Color("#c5d6d0"); scene_card.position=Vector2(25,70); scene_card.size=Vector2(630,225); center.add_child(scene_card)
+	var scene_card:=ColorRect.new(); scene_card.color=Color(Color("#c5d6d0"),0.20); scene_card.position=Vector2(25,70); scene_card.size=Vector2(630,225); center.add_child(scene_card)
 	scene_text=_label("云海 · 飞瀑 · 古松 · 灵气\n\n一世只有数十年。\n你准备如何走完这一生？",20,Color("#36535a")); scene_text.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; scene_text.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; scene_text.position=Vector2(50,90); scene_text.size=Vector2(580,170); center.add_child(scene_text)
 	var action_title:=_label("当前行动",19,Color("#173442")); action_title.position=Vector2(25,320); action_title.size=Vector2(200,35); center.add_child(action_title)
 	var b1:=_button("修炼 · 1年",Vector2(25,365),Vector2(195,58)); b1.pressed.connect(_cultivate); center.add_child(b1); action_buttons.append(b1)
@@ -153,7 +145,7 @@ func _build_ui() -> void:
 	var log_title:=_label("近期日志",19,Color("#173442")); log_title.position=Vector2(20,265); log_title.size=Vector2(300,35); right.add_child(log_title)
 	log_label=_label("",14,Color("#667272")); log_label.position=Vector2(20,310); log_label.size=Vector2(320,245); right.add_child(log_label)
 
-	var nav:=ColorRect.new(); nav.color=Color("#173442"); nav.position=Vector2(0,730); nav.size=Vector2(size.x,170); add_child(nav)
+	var nav:=ColorRect.new(); nav.color=Color(Color("#173442"),0.86); nav.position=Vector2(0,730); nav.size=Vector2(size.x,170); add_child(nav)
 	var nav_items=["角色","修炼","探索","战斗","装备","功法","命格","轮回"]
 	for i in nav_items.size():
 		var nb:=_button(nav_items[i],Vector2(35+i*177,775),Vector2(150,54)); add_child(nb)
@@ -171,11 +163,22 @@ func _label(text:String,size_px:int,color:Color)->Label:
 
 func _panel(pos:Vector2,panel_size:Vector2)->Panel:
 	var p:=Panel.new(); p.position=pos; p.size=panel_size
-	var s:=StyleBoxFlat.new(); s.bg_color=Color(0.95,0.94,0.87,0.96); s.border_color=Color("#9caea9"); s.set_border_width_all(2); s.set_corner_radius_all(8); p.add_theme_stylebox_override("panel",s); return p
+	var s:=StyleBoxFlat.new(); s.bg_color=Color(0.96,0.94,0.88,0.92); s.border_color=Color("#a89f8b"); s.set_border_width_all(1); s.set_corner_radius_all(12)
+	s.shadow_color=Color(0.05,0.10,0.10,0.18); s.shadow_size=10; s.shadow_offset=Vector2(0,4)
+	p.add_theme_stylebox_override("panel",s); return p
 
 func _button(text:String,pos:Vector2,button_size:Vector2)->Button:
 	var b:=Button.new(); b.text=text; b.position=pos; b.size=button_size; b.add_theme_font_override("font",font); b.add_theme_font_size_override("font_size",15)
-	var n:=StyleBoxFlat.new(); n.bg_color=Color("#31576a"); n.set_corner_radius_all(8); var h=n.duplicate(); h.bg_color=Color("#42758a"); b.add_theme_stylebox_override("normal",n); b.add_theme_stylebox_override("hover",h); b.add_theme_color_override("font_color",Color("#f4f0df")); return b
+	var n:=StyleBoxFlat.new(); n.bg_color=Color("#31576a"); n.set_corner_radius_all(9); n.border_color=Color(1,1,1,0.10); n.set_border_width_all(1)
+	var h:=StyleBoxFlat.new(); h.bg_color=Color("#42758a"); h.set_corner_radius_all(9); h.border_color=Color(1,1,1,0.14); h.set_border_width_all(1)
+	var pr:=StyleBoxFlat.new(); pr.bg_color=Color("#173442"); pr.set_corner_radius_all(9)
+	var dis:=StyleBoxFlat.new(); dis.bg_color=Color("#a7aaa2"); dis.set_corner_radius_all(9)
+	b.add_theme_stylebox_override("normal",n); b.add_theme_stylebox_override("hover",h)
+	b.add_theme_stylebox_override("pressed",pr); b.add_theme_stylebox_override("disabled",dis)
+	b.add_theme_color_override("font_color",Color("#f4f0df")); b.add_theme_color_override("font_hover_color",Color.WHITE)
+	b.add_theme_color_override("font_pressed_color",Color("#d8d0bf")); b.add_theme_color_override("font_disabled_color",Color("#e8e6dd"))
+	b.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+	return b
 
 func _refresh()->void:
 	var atk:=_attack(); var defense:=_defense()
