@@ -90,10 +90,10 @@ func _draw() -> void:
         return
     var enemy: Dictionary = root.get("current_enemy")
     var player_data: Dictionary = root.get("player")
-    var enemy_hp := max(0, int(root.get("current_enemy_hp")))
-    var enemy_max := max(1, int(enemy.get("hp", 1)))
-    var player_hp := max(0, int(player_data.get("hp", 0)))
-    var player_max := max(1, int(player_data.get("max_hp", 1)))
+    var enemy_hp := maxi(0, int(root.get("current_enemy_hp")))
+    var enemy_max := maxi(1, int(enemy.get("hp", 1)))
+    var player_hp := maxi(0, int(player_data.get("hp", 0)))
+    var player_max := maxi(1, int(player_data.get("max_hp", 1)))
     draw_line(Vector2(650, 240), Vector2(775, 240), Color(0.25, 0.34, 0.35, 0.25), 2.0)
     draw_circle(Vector2(650, 240), 5.0, Color("#8b9d92"))
     draw_circle(Vector2(775, 240), 5.0, Color("#8b9d92"))
@@ -109,7 +109,7 @@ func _draw() -> void:
 
 func _draw_bar(pos: Vector2, hp: int, max_hp: int, text: String) -> void:
     draw_rect(Rect2(pos, Vector2(BAR_W, 18)), Color("#243b3f"), true)
-    var ratio := clamp(float(hp) / float(max_hp), 0.0, 1.0)
+    var ratio := clampf(float(hp) / float(max_hp), 0.0, 1.0)
     draw_rect(Rect2(pos + Vector2(2, 2), Vector2((BAR_W - 4.0) * ratio, 14)), Color("#9b4b45" if ratio < 0.3 else "#628f78"), true)
     draw_string(ThemeDB.fallback_font, pos + Vector2(0, -7), text, HORIZONTAL_ALIGNMENT_LEFT, BAR_W, 14, Color("#294247"))
 
@@ -166,7 +166,7 @@ func _player_action(root: Node, action: String) -> void:
     var equipped: Dictionary = root.get("equipped")
     var weapon: Dictionary = equipped.get("武器", {})
     var attack := int(player.get("attack", 0)) + int(weapon.get("attack", 0))
-    var damage := max(1, attack - int(enemy.get("defense", 0)) + randi_range(0, 5))
+    var damage := maxi(1, attack - int(enemy.get("defense", 0)) + randi_range(0, 5))
     if action == "skill":
         var learned: Array = root.get("skills")
         if not learned.has("青云剑诀"):
@@ -207,7 +207,7 @@ func _enemy_action(root: Node, enemy: Dictionary) -> void:
     var equipped: Dictionary = root.get("equipped")
     var armor: Dictionary = equipped.get("防具", {})
     var defense := int(player.get("defense", 0)) + int(armor.get("defense", 0))
-    var damage := max(1, int(enemy.get("attack", 10)) - defense + randi_range(0, 4))
+    var damage := maxi(1, int(enemy.get("attack", 10)) - defense + randi_range(0, 4))
     if guarding:
         damage = max(1, int(round(damage * 0.55)))
     player.hp = max(0, int(player.get("hp", 0)) - damage)
