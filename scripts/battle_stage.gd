@@ -38,6 +38,7 @@ func _process(delta: float) -> void:
     hit_flash = max(0.0, hit_flash - delta)
     player_anim = max(0.0, player_anim - delta)
     enemy_anim = max(0.0, enemy_anim - delta)
+
     var root := get_parent()
     if root == null:
         return
@@ -55,6 +56,7 @@ func _process(delta: float) -> void:
         guarding = false
         _clear_commands()
         return
+
     visible = true
     if enemy.get("name", "") != last_enemy_name:
         battle_turn = 1
@@ -65,13 +67,6 @@ func _process(delta: float) -> void:
         _hide_legacy_buttons(battle_modal)
         _build_commands(root, battle_modal)
         previous_enemy_hp = int(root.get("current_enemy_hp"))
-<<<<<<< HEAD
-        previous_player_hp = int(player_data.get("hp", 0))
-    var enemy_hp := int(root.get("current_enemy_hp"))
-    player_data = root.get("player")
-    var player_hp := int(player_data.get("hp", 0))
-    if enemy_hp != previous_enemy_hp or player_hp != previous_player_hp:
-=======
         previous_player_hp = int(root.get("player").get("hp", 0))
 
     var enemy_hp := int(root.get("current_enemy_hp"))
@@ -80,7 +75,6 @@ func _process(delta: float) -> void:
     var enemy_changed := enemy_hp != previous_enemy_hp
     var player_changed := player_hp != previous_player_hp
     if enemy_changed or player_changed:
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
         hit_flash = 0.22
         if enemy_changed and enemy_hp < previous_enemy_hp:
             player_anim = 0.16
@@ -88,6 +82,7 @@ func _process(delta: float) -> void:
             enemy_anim = 0.16
         previous_enemy_hp = enemy_hp
         previous_player_hp = player_hp
+
     var player_offset := Vector2(0, sin(pulse * 2.0) * 3.0)
     var enemy_offset := Vector2(0, sin(pulse * 2.4 + 1.0) * 4.0)
     if player_anim > 0.0:
@@ -109,48 +104,30 @@ func _draw() -> void:
         return
     var enemy: Dictionary = root.get("current_enemy")
     var player_data: Dictionary = root.get("player")
-<<<<<<< HEAD
     var enemy_hp := maxi(0, int(root.get("current_enemy_hp")))
     var enemy_max := maxi(1, int(enemy.get("hp", 1)))
     var player_hp := maxi(0, int(player_data.get("hp", 0)))
     var player_max := maxi(1, int(player_data.get("max_hp", 1)))
-=======
-    var enemy_hp := max(0, int(root.get("current_enemy_hp")))
-    var enemy_max := max(1, int(enemy.get("hp", 1)))
-    var player_hp := max(0, int(player_data.get("hp", 0)))
-    var player_max := max(1, int(player_data.get("max_hp", 1)))
 
     draw_circle(Vector2(650, 240), 86.0, Color(0.72, 0.69, 0.59, 0.10))
     draw_circle(Vector2(775, 240), 86.0, Color(0.48, 0.43, 0.34, 0.09))
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
     draw_line(Vector2(650, 240), Vector2(775, 240), Color(0.25, 0.34, 0.35, 0.25), 2.0)
     draw_circle(Vector2(650, 240), 5.0, Color("#8b9d92"))
     draw_circle(Vector2(775, 240), 5.0, Color("#8b9d92"))
     _draw_bar(Vector2(495, 305), player_hp, player_max, "林凡  %d/%d" % [player_hp, player_max])
     _draw_bar(Vector2(740, 305), enemy_hp, enemy_max, "%s  %d/%d" % [enemy.get("name", "妖物"), enemy_hp, enemy_max])
     draw_string(ThemeDB.fallback_font, Vector2(495, 350), "第 %d 回合" % battle_turn, HORIZONTAL_ALIGNMENT_LEFT, 180, 15, Color("#5b4931"))
-<<<<<<< HEAD
-    draw_string(ThemeDB.fallback_font, Vector2(740, 350), last_action_text, HORIZONTAL_ALIGNMENT_LEFT, 220, 15, Color("#667272"))
-    if guarding:
-        draw_string(ThemeDB.fallback_font, Vector2(495, 375), "护体：本回合受到伤害降低 45%", HORIZONTAL_ALIGNMENT_LEFT, 250, 14, Color("#31576a"))
-=======
     draw_string(ThemeDB.fallback_font, Vector2(740, 350), last_action_text, HORIZONTAL_ALIGNMENT_LEFT, 220, 15, INK_SOFT)
     if guarding:
         draw_string(ThemeDB.fallback_font, Vector2(495, 375), "护体：本回合受到伤害降低 45%", HORIZONTAL_ALIGNMENT_LEFT, 250, 14, TEAL)
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
     if hit_flash > 0.0:
         var target := enemy_sprite.position if enemy_sprite else ENEMY_POS
         draw_circle(target, 58.0 + hit_flash * 30.0, Color(0.75, 0.16, 0.12, hit_flash * 1.5))
 
 func _draw_bar(pos: Vector2, hp: int, max_hp: int, text: String) -> void:
     draw_rect(Rect2(pos, Vector2(BAR_W, 18)), Color("#243b3f"), true)
-<<<<<<< HEAD
     var ratio := clampf(float(hp) / float(max_hp), 0.0, 1.0)
-    draw_rect(Rect2(pos + Vector2(2, 2), Vector2((BAR_W - 4.0) * ratio, 14)), Color("#9b4b45" if ratio < 0.3 else "#628f78"), true)
-=======
-    var ratio := clamp(float(hp) / float(max_hp), 0.0, 1.0)
     draw_rect(Rect2(pos + Vector2(2, 2), Vector2((BAR_W - 4.0) * ratio, 14)), Color("#9b4b45") if ratio < 0.3 else Color("#628f78"), true)
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
     draw_string(ThemeDB.fallback_font, pos + Vector2(0, -7), text, HORIZONTAL_ALIGNMENT_LEFT, BAR_W, 14, Color("#294247"))
 
 func _hide_legacy_buttons(modal: Control) -> void:
@@ -171,16 +148,11 @@ func _build_commands(root: Node, modal: Control) -> void:
         button.position = Vector2(485 + i * 165, 525)
         button.size = Vector2(150, 48)
         button.add_theme_font_size_override("font_size", 15)
-<<<<<<< HEAD
-        button.add_theme_stylebox_override("normal", _button_style(Color("#31576a") if i < 2 else Color("#6b5740")))
-        button.add_theme_stylebox_override("hover", _button_style(Color("#42758a") if i < 2 else Color("#856d50")))
-=======
         var primary := i < 2
         button.add_theme_color_override("font_color", PAPER)
         button.add_theme_stylebox_override("normal", _button_style(TEAL if primary else EARTH))
         button.add_theme_stylebox_override("hover", _button_style(TEAL_HOVER if primary else EARTH_HOVER))
         button.add_theme_stylebox_override("pressed", _button_style(INK))
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
         match i:
             0: button.pressed.connect(func(): _player_action(root, "attack"))
             1: button.pressed.connect(func(): _player_action(root, "skill"))
@@ -188,10 +160,6 @@ func _build_commands(root: Node, modal: Control) -> void:
             3: button.pressed.connect(func(): _retreat(root))
         add_child(button)
         command_buttons.append(button)
-<<<<<<< HEAD
-    _refresh_commands()
-=======
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
 
 func _clear_commands() -> void:
     for button in command_buttons:
@@ -204,11 +172,8 @@ func _button_style(bg: Color) -> StyleBoxFlat:
     var style := StyleBoxFlat.new()
     style.bg_color = bg
     style.set_corner_radius_all(7)
-<<<<<<< HEAD
-=======
     style.shadow_color = Color(0, 0, 0, 0.14)
     style.shadow_size = 4
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
     return style
 
 func _player_action(root: Node, action: String) -> void:
@@ -219,18 +184,11 @@ func _player_action(root: Node, action: String) -> void:
     var enemy_hp := int(root.get("current_enemy_hp"))
     if enemy.is_empty() or bool(player.get("dead", false)) or enemy_hp <= 0:
         return
-<<<<<<< HEAD
-    var equipped: Dictionary = root.get("equipped")
-    var weapon: Dictionary = equipped.get("武器", {})
-    var attack := int(player.get("attack", 0)) + int(weapon.get("attack", 0))
-    var damage := maxi(1, attack - int(enemy.get("defense", 0)) + randi_range(0, 5))
-=======
 
     var weapon: Dictionary = root.get("equipped").get("武器", {})
     var attack := int(player.get("attack", 0)) + int(weapon.get("attack", 0))
-    var damage := max(1, attack - int(enemy.get("defense", 0)) + randi_range(0, 5))
+    var damage := maxi(1, attack - int(enemy.get("defense", 0)) + randi_range(0, 5))
 
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
     if action == "skill":
         var learned: Array = root.get("skills")
         if not learned.has("青云剑诀"):
@@ -243,14 +201,6 @@ func _player_action(root: Node, action: String) -> void:
             return
         damage = int(ceil(float(damage) * 1.30)) + 8
         skill_cooldown = 2
-<<<<<<< HEAD
-        last_action_text = "青云剑诀 · 斩！造成 %d" % damage
-    elif action == "guard":
-        guarding = true
-        last_action_text = "凝神护体 · 减伤 45%"
-    else:
-        last_action_text = "一剑出鞘 · 命中 %d" % damage
-=======
         last_action_text = "青云剑诀 · 斩！"
     elif action == "guard":
         guarding = true
@@ -258,23 +208,10 @@ func _player_action(root: Node, action: String) -> void:
     else:
         last_action_text = "一剑出鞘 · 命中 %d" % damage
 
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
     if action != "guard":
         enemy_hp = max(0, enemy_hp - damage)
         root.set("current_enemy_hp", enemy_hp)
         player_anim = 0.16
-<<<<<<< HEAD
-    if enemy_hp <= 0:
-        _win_battle(root, enemy)
-        return
-    _enemy_action(root, enemy)
-    if bool(root.get("player").get("dead", false)):
-        return
-    battle_turn += 1
-    guarding = false
-    if skill_cooldown > 0:
-        skill_cooldown -= 1
-=======
 
     if enemy_hp <= 0:
         _win_battle(root, enemy)
@@ -288,22 +225,14 @@ func _player_action(root: Node, action: String) -> void:
     if action != "skill" and skill_cooldown > 0:
         skill_cooldown = max(0, skill_cooldown - 1)
     guarding = false
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
     _refresh_commands()
     queue_redraw()
 
 func _enemy_action(root: Node, enemy: Dictionary) -> void:
     var player: Dictionary = root.get("player")
-<<<<<<< HEAD
-    var equipped: Dictionary = root.get("equipped")
-    var armor: Dictionary = equipped.get("防具", {})
-    var defense := int(player.get("defense", 0)) + int(armor.get("defense", 0))
-    var damage := maxi(1, int(enemy.get("attack", 10)) - defense + randi_range(0, 4))
-=======
     var armor: Dictionary = root.get("equipped").get("防具", {})
     var defense := int(player.get("defense", 0)) + int(armor.get("defense", 0))
-    var damage := max(1, int(enemy.get("attack", 10)) - defense + randi_range(0, 4))
->>>>>>> 5c9d51473dabfc5a5ea44e6410ad85ad220cba28
+    var damage := maxi(1, int(enemy.get("attack", 10)) - defense + randi_range(0, 4))
     if guarding:
         damage = max(1, int(round(damage * 0.55)))
     player.hp = max(0, int(player.get("hp", 0)) - damage)
