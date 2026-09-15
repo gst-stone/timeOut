@@ -1,0 +1,45 @@
+extends Node2D
+
+# 死亡结算舞台：寿元耗尽/战败后给出明确的本世总结与轮回入口。
+var shown := false
+var pulse := 0.0
+
+func _ready() -> void:
+    z_index = 40
+    visible = false
+
+func _process(delta: float) -> void:
+    pulse += delta
+    var root := get_parent()
+    if root == null:
+        return
+    var player: Dictionary = root.get("player")
+    var dead := bool(player.get("dead", false))
+    if not dead:
+        visible = false
+        shown = false
+        return
+    visible = true
+    if not shown:
+        shown = true
+    queue_redraw()
+
+func _draw() -> void:
+    var root := get_parent()
+    if root == null:
+        return
+    var player: Dictionary = root.get("player")
+    var meta: Dictionary = root.get("meta")
+    draw_rect(Rect2(390, 105, 880, 650), Color(0.08, 0.13, 0.15, 0.92), true)
+    draw_rect(Rect2(405, 120, 850, 620), Color(0.93, 0.91, 0.83, 0.98), true)
+    draw_string(ThemeDB.fallback_font, Vector2(465, 180), "一世终焉", HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color("#173442"))
+    draw_string(ThemeDB.fallback_font, Vector2(465, 225), "第 %d 世 · %s · %d 层" % [player.get("life_no",1), root.REALMS[player.get("realm",0)], player.get("level",1)], HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("#5b4931"))
+    draw_string(ThemeDB.fallback_font, Vector2(465, 275), "享年 %d 岁 / 寿元 %d 岁" % [player.get("age",0), player.get("max_age",0)], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#425455"))
+    draw_string(ThemeDB.fallback_font, Vector2(465, 315), "修为 %d    灵石 %d" % [player.get("cultivation",0), player.get("stones",0)], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#425455"))
+    draw_string(ThemeDB.fallback_font, Vector2(465, 370), "因果沉淀", HORIZONTAL_ALIGNMENT_LEFT, -1, 23, Color("#173442"))
+    draw_string(ThemeDB.fallback_font, Vector2(465, 410), "悟性 +%d     气运 +%d     体质 +%d" % [int(player.get("realm",0)/2), int(player.get("level",1)/4), int(player.get("realm",0)/3)], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#667272"))
+    draw_string(ThemeDB.fallback_font, Vector2(465, 475), "永久因果", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#173442"))
+    draw_string(ThemeDB.fallback_font, Vector2(465, 510), "悟性 +%d    气运 +%d    体质 +%d" % [meta.get("comprehension",0), meta.get("luck",0), meta.get("physique",0)], HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("#667272"))
+    var y := 610 + sin(pulse * 2.0) * 2.0
+    draw_rect(Rect2(465, y, 560, 58), Color("#31576a"), true)
+    draw_string(ThemeDB.fallback_font, Vector2(635, y + 37), "按 R 或点击【轮回】开始下一世", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#f4f0df"))
