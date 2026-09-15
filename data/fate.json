@@ -1,0 +1,40 @@
+{
+  "fates": [
+    {
+      "id": "ordinary",
+      "name": "凡骨",
+      "description": "没有惊人的天赋，但每一步都走得更稳。",
+      "effects": {"comprehension": 0, "luck": 0, "physique": 1}
+    },
+    {
+      "id": "heavenly_root",
+      "name": "天灵根",
+      "description": "天地灵气亲近于你，修炼速度显著提升。",
+      "effects": {"comprehension": 3, "luck": 0, "physique": 0}
+    },
+    {
+      "id": "fortunate",
+      "name": "天命眷顾",
+      "description": "你总能在最危险的时候遇到一线生机。",
+      "effects": {"comprehension": 0, "luck": 4, "physique": 0}
+    },
+    {
+      "id": "iron_body",
+      "name": "不灭体",
+      "description": "肉身远胜常人，战斗中的容错更高。",
+      "effects": {"comprehension": 0, "luck": 0, "physique": 4}
+    },
+    {
+      "id": "short_life",
+      "name": "短命相",
+      "description": "寿元短暂，却能换来更快的修炼。",
+      "effects": {"comprehension": 2, "luck": 1, "physique": 0, "max_age": -12}
+    },
+    {
+      "id": "karma",
+      "name": "因果深重",
+      "description": "你的一生更容易卷入特殊事件。",
+      "effects": {"comprehension": 1, "luck": 3, "physique": 1}
+    }
+  ]
+}
