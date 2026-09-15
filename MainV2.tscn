@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource path="res://main_v3.gd" type="Script" id="1"]
 [ext_resource path="res://scripts/sprite_stage.gd" type="Script" id="2"]
 [ext_resource path="res://scripts/battle_stage.gd" type="Script" id="3"]
 [ext_resource path="res://scripts/death_stage.gd" type="Script" id="4"]
+[ext_resource path="res://scripts/fortune_events.gd" type="Script" id="5"]
 
 [node name="MainV2" type="Control"]
 layout_mode = 3
@@ -22,3 +23,6 @@ script = ExtResource("3")
 
 [node name="DeathStage" type="Node2D" parent="."]
 script = ExtResource("4")
+
+[node name="FortuneEvents" type="Node" parent="."]
+script = ExtResource("5")
