@@ -18,8 +18,9 @@ func _process(delta: float) -> void:
     var root := get_parent()
     if root == null:
         return
-    var enemy: Dictionary = root.current_enemy if "current_enemy" in root else {}
-    var battle_open := is_instance_valid(root.modal) and not enemy.is_empty()
+    var enemy: Dictionary = root.get("current_enemy")
+    var battle_modal = root.get("modal")
+    var battle_open := is_instance_valid(battle_modal) and not enemy.is_empty()
     if not battle_open:
         visible = false
         return
