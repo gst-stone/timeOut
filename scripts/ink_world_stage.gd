@@ -20,6 +20,8 @@ const EARTH := Color("#6b5740")
 const RED := Color("#9b4b45")
 
 var viewport_size := Vector2(1440, 820)
+var paint_size := Vector2.ZERO  # 非零时按该尺寸绘制（用于中央场景卡的内嵌画窗）
+var overlay_only := false  # 背景大图接入后，只保留云雾/浮尘/朱印/暗角等动态叠加
 var time := 0.0
 
 func _ready() -> void:
@@ -31,9 +33,16 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	viewport_size = get_viewport_rect().size
-	if viewport_size.x < 900.0:
+	viewport_size = paint_size if paint_size != Vector2.ZERO else get_viewport_rect().size
+	if paint_size == Vector2.ZERO and viewport_size.x < 900.0:
 		viewport_size = Vector2(1440, 820)
+	if overlay_only:
+		# 手绘山水大图已在底层，这里只绘制会动的部分。
+		_draw_drifting_clouds()
+		_draw_floating_dust()
+		_draw_seal()
+		_draw_vignette()
+		return
 
 	_draw_sky()
 	_draw_far_peaks()
@@ -41,6 +50,7 @@ func _draw() -> void:
 	_draw_mid_peaks()
 	_draw_drifting_clouds()
 	_draw_near_ridge()
+	_draw_terrace()
 	_draw_water_and_ground()
 	_draw_frame_branches()
 	_draw_seal()
@@ -58,77 +68,77 @@ func _draw_sky() -> void:
 		draw_rect(Rect2(0, y, viewport_size.x, horizon / float(bands) + 1.0), c)
 
 func _draw_far_peaks() -> void:
-	# 最高远的尖峰群，颜色最浅，形成空气透视。
+	# 最高远的尖峰群，颜色最浅，形成空气透视；峰顶探入 UI 之间的天空。
 	var w := viewport_size.x
-	var base := viewport_size.y * 0.66
+	var base := viewport_size.y * 0.55
 	var points := PackedVector2Array([
-		Vector2(0, base - viewport_size.y * 0.10),
-		Vector2(w * 0.07, base - viewport_size.y * 0.26),
-		Vector2(w * 0.15, base - viewport_size.y * 0.14),
-		Vector2(w * 0.24, base - viewport_size.y * 0.34),
-		Vector2(w * 0.31, base - viewport_size.y * 0.18),
-		Vector2(w * 0.42, base - viewport_size.y * 0.30),
-		Vector2(w * 0.50, base - viewport_size.y * 0.12),
-		Vector2(w * 0.58, base - viewport_size.y * 0.36),
-		Vector2(w * 0.66, base - viewport_size.y * 0.16),
-		Vector2(w * 0.75, base - viewport_size.y * 0.28),
-		Vector2(w * 0.84, base - viewport_size.y * 0.13),
-		Vector2(w * 0.93, base - viewport_size.y * 0.22),
-		Vector2(w, base - viewport_size.y * 0.09),
+		Vector2(0, base - viewport_size.y * 0.16),
+		Vector2(w * 0.07, base - viewport_size.y * 0.38),
+		Vector2(w * 0.15, base - viewport_size.y * 0.24),
+		Vector2(w * 0.24, base - viewport_size.y * 0.44),
+		Vector2(w * 0.31, base - viewport_size.y * 0.28),
+		Vector2(w * 0.42, base - viewport_size.y * 0.40),
+		Vector2(w * 0.50, base - viewport_size.y * 0.22),
+		Vector2(w * 0.58, base - viewport_size.y * 0.46),
+		Vector2(w * 0.66, base - viewport_size.y * 0.26),
+		Vector2(w * 0.75, base - viewport_size.y * 0.38),
+		Vector2(w * 0.84, base - viewport_size.y * 0.23),
+		Vector2(w * 0.93, base - viewport_size.y * 0.32),
+		Vector2(w, base - viewport_size.y * 0.18),
 		Vector2(w, base),
 		Vector2(0, base)
 	])
 	draw_colored_polygon(points, Color(PEAK_SKY, 0.92))
-	_ridge(Vector2(w * 0.10, base - viewport_size.y * 0.24), Vector2(w * 0.24, base - viewport_size.y * 0.34), 2.0, Color(INK_SOFT, 0.14))
-	_ridge(Vector2(w * 0.50, base - viewport_size.y * 0.12), Vector2(w * 0.58, base - viewport_size.y * 0.36), 2.0, Color(INK_SOFT, 0.13))
-	_ridge(Vector2(w * 0.76, base - viewport_size.y * 0.26), Vector2(w * 0.93, base - viewport_size.y * 0.20), 2.0, Color(INK_SOFT, 0.11))
+	_ridge(Vector2(w * 0.10, base - viewport_size.y * 0.34), Vector2(w * 0.24, base - viewport_size.y * 0.44), 2.0, Color(INK_SOFT, 0.14))
+	_ridge(Vector2(w * 0.50, base - viewport_size.y * 0.22), Vector2(w * 0.58, base - viewport_size.y * 0.46), 2.0, Color(INK_SOFT, 0.13))
+	_ridge(Vector2(w * 0.76, base - viewport_size.y * 0.36), Vector2(w * 0.93, base - viewport_size.y * 0.30), 2.0, Color(INK_SOFT, 0.11))
 
 func _draw_cloud_wall() -> void:
 	# 山腰云海：一排宽而柔的云团，盖住远山山脚。
 	var w := viewport_size.x
-	var y := viewport_size.y * (0.585 + sin(time * 0.16) * 0.004)
+	var y := viewport_size.y * (0.475 + sin(time * 0.16) * 0.004)
 	for i in range(9):
 		var cx := w * (0.06 + float(i) * 0.115) + sin(time * 0.22 + float(i) * 1.3) * 12.0
 		var cy := y + sin(float(i) * 2.1) * 7.0
 		var rx := 110.0 + float(i % 4) * 26.0
 		_draw_ink_ellipse(Vector2(cx, cy), Vector2(rx, 15.0 + float(i % 3) * 4.0), Color(PAPER_LIGHT, 0.42))
 		_draw_ink_ellipse(Vector2(cx + rx * 0.4, cy - 8.0), Vector2(rx * 0.55, 9.0), Color(PAPER_LIGHT, 0.34))
-	_mist_ribbon(viewport_size.y * 0.63, 0.14, 130.0)
+	_mist_ribbon(viewport_size.y * 0.52, 0.14, 130.0)
 
 func _draw_mid_peaks() -> void:
 	# 中景主峰：颜色加深，其上安放青云宗寺塔剪影与一道飞瀑。
 	var w := viewport_size.x
-	var base := viewport_size.y * 0.74
+	var base := viewport_size.y * 0.66
 	var points := PackedVector2Array([
-		Vector2(0, base - viewport_size.y * 0.08),
-		Vector2(w * 0.09, base - viewport_size.y * 0.16),
-		Vector2(w * 0.18, base - viewport_size.y * 0.09),
-		Vector2(w * 0.30, base - viewport_size.y * 0.24),
-		Vector2(w * 0.38, base - viewport_size.y * 0.12),
-		Vector2(w * 0.47, base - viewport_size.y * 0.28),
-		Vector2(w * 0.55, base - viewport_size.y * 0.14),
-		Vector2(w * 0.63, base - viewport_size.y * 0.22),
-		Vector2(w * 0.72, base - viewport_size.y * 0.10),
-		Vector2(w * 0.81, base - viewport_size.y * 0.18),
-		Vector2(w * 0.90, base - viewport_size.y * 0.07),
-		Vector2(w, base - viewport_size.y * 0.12),
+		Vector2(0, base - viewport_size.y * 0.14),
+		Vector2(w * 0.09, base - viewport_size.y * 0.26),
+		Vector2(w * 0.18, base - viewport_size.y * 0.16),
+		Vector2(w * 0.30, base - viewport_size.y * 0.34),
+		Vector2(w * 0.38, base - viewport_size.y * 0.20),
+		Vector2(w * 0.47, base - viewport_size.y * 0.42),
+		Vector2(w * 0.55, base - viewport_size.y * 0.22),
+		Vector2(w * 0.63, base - viewport_size.y * 0.31),
+		Vector2(w * 0.72, base - viewport_size.y * 0.17),
+		Vector2(w * 0.81, base - viewport_size.y * 0.27),
+		Vector2(w * 0.90, base - viewport_size.y * 0.13),
+		Vector2(w, base - viewport_size.y * 0.19),
 		Vector2(w, base),
 		Vector2(0, base)
 	])
 	draw_colored_polygon(points, Color(PEAK_FAR, 0.90))
 
-	# 青云宗寺塔：立于 w*0.47 主峰顶。
-	_pagoda(Vector2(w * 0.47, base - viewport_size.y * 0.272), 13.0, Color(INK, 0.46))
-	# 飞瀑：从 w*0.63 峰腰垂落。
-	_waterfall(Vector2(w * 0.635, base - viewport_size.y * 0.17), base - viewport_size.y * 0.035, WATER)
+	# 青云宗寺塔：立于 w*0.47 主峰顶，尺寸随画幅缩放。
+	_pagoda(Vector2(w * 0.47, base - viewport_size.y * 0.405), viewport_size.y * 0.0145, Color(INK, 0.46))
+	# 飞瀑：从 w*0.63 峰腰垂落，没入云海。
+	_waterfall(Vector2(w * 0.635, base - viewport_size.y * 0.26), base - viewport_size.y * 0.16, WATER)
 
 func _draw_drifting_clouds() -> void:
-	# 漂移的白云，穿过中景山腰，制造“云在山中行”的层次。
+	# 漂移的白云，穿过山腰与峰顶，制造“云在山中行”的层次。
 	var w := viewport_size.x
 	for i in range(10):
 		var speed := 5.0 + float(i % 4) * 1.6
 		var x := fmod(float(i) * 187.0 + time * speed, w + 320.0) - 160.0
-		var y := viewport_size.y * (0.36 + float(i % 4) * 0.055)
+		var y := viewport_size.y * (0.14 + float(i % 4) * 0.055)
 		var rx := 84.0 + float(i % 5) * 22.0
 		var a := 0.20 + float(i % 3) * 0.09
 		_draw_ink_ellipse(Vector2(x, y), Vector2(rx, 12.0 + float(i % 3) * 3.0), Color(PAPER_LIGHT, a))
@@ -137,18 +147,18 @@ func _draw_drifting_clouds() -> void:
 func _draw_near_ridge() -> void:
 	# 近景山脊：墨色最重，脊线上立松林剪影。
 	var w := viewport_size.x
-	var base := viewport_size.y * 0.83
+	var base := viewport_size.y * 0.78
 	var points := PackedVector2Array([
-		Vector2(0, base - viewport_size.y * 0.06),
-		Vector2(w * 0.11, base - viewport_size.y * 0.13),
-		Vector2(w * 0.22, base - viewport_size.y * 0.05),
-		Vector2(w * 0.33, base - viewport_size.y * 0.11),
-		Vector2(w * 0.45, base - viewport_size.y * 0.04),
-		Vector2(w * 0.56, base - viewport_size.y * 0.10),
-		Vector2(w * 0.68, base - viewport_size.y * 0.05),
-		Vector2(w * 0.79, base - viewport_size.y * 0.09),
-		Vector2(w * 0.90, base - viewport_size.y * 0.03),
-		Vector2(w, base - viewport_size.y * 0.07),
+		Vector2(0, base - viewport_size.y * 0.30),
+		Vector2(w * 0.11, base - viewport_size.y * 0.34),
+		Vector2(w * 0.22, base - viewport_size.y * 0.27),
+		Vector2(w * 0.33, base - viewport_size.y * 0.32),
+		Vector2(w * 0.45, base - viewport_size.y * 0.25),
+		Vector2(w * 0.56, base - viewport_size.y * 0.31),
+		Vector2(w * 0.68, base - viewport_size.y * 0.26),
+		Vector2(w * 0.79, base - viewport_size.y * 0.30),
+		Vector2(w * 0.90, base - viewport_size.y * 0.24),
+		Vector2(w, base - viewport_size.y * 0.29),
 		Vector2(w, base + viewport_size.y * 0.10),
 		Vector2(0, base + viewport_size.y * 0.10)
 	])
@@ -173,18 +183,26 @@ func _draw_near_ridge() -> void:
 	])
 	draw_colored_polygon(foot, Color(PEAK_BASE, 0.55))
 
+func _draw_terrace() -> void:
+	# 打坐石台：中央主景下的圆形平台，修炼者立于其上。
+	var w := viewport_size.x
+	var center := Vector2(w * 0.48, viewport_size.y * 0.605)
+	_draw_ink_ellipse(center, Vector2(150.0, 26.0), Color(INK, 0.20))
+	_draw_ink_ellipse(center + Vector2(0, -3.0), Vector2(132.0, 21.0), Color(PEAK_FAR, 0.55))
+	_draw_ink_ellipse(center + Vector2(0, -5.0), Vector2(96.0, 15.0), Color(PAPER_LIGHT, 0.20))
+
 func _ridge_y(t: float) -> float:
 	# 近景脊线高度的近似采样，用于把松树立在脊线上。
-	var h := 0.06
-	if t < 0.11: h = lerpf(0.06, 0.13, t / 0.11)
-	elif t < 0.22: h = lerpf(0.13, 0.05, (t - 0.11) / 0.11)
-	elif t < 0.33: h = lerpf(0.05, 0.11, (t - 0.22) / 0.11)
-	elif t < 0.45: h = lerpf(0.11, 0.04, (t - 0.33) / 0.12)
-	elif t < 0.56: h = lerpf(0.04, 0.10, (t - 0.45) / 0.11)
-	elif t < 0.68: h = lerpf(0.10, 0.05, (t - 0.56) / 0.12)
-	elif t < 0.79: h = lerpf(0.05, 0.09, (t - 0.68) / 0.11)
-	elif t < 0.90: h = lerpf(0.09, 0.03, (t - 0.79) / 0.11)
-	else: h = lerpf(0.03, 0.07, (t - 0.90) / 0.10)
+	var h := 0.30
+	if t < 0.11: h = lerpf(0.30, 0.34, t / 0.11)
+	elif t < 0.22: h = lerpf(0.34, 0.27, (t - 0.11) / 0.11)
+	elif t < 0.33: h = lerpf(0.27, 0.32, (t - 0.22) / 0.11)
+	elif t < 0.45: h = lerpf(0.32, 0.25, (t - 0.33) / 0.12)
+	elif t < 0.56: h = lerpf(0.25, 0.31, (t - 0.45) / 0.11)
+	elif t < 0.68: h = lerpf(0.31, 0.26, (t - 0.56) / 0.12)
+	elif t < 0.79: h = lerpf(0.26, 0.30, (t - 0.68) / 0.11)
+	elif t < 0.90: h = lerpf(0.30, 0.24, (t - 0.79) / 0.11)
+	else: h = lerpf(0.24, 0.29, (t - 0.90) / 0.10)
 	return h
 
 func _draw_water_and_ground() -> void:

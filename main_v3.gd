@@ -31,6 +31,7 @@ const SKILLS := [
 ]
 
 var font: Font
+var font_title: Font
 var player: Dictionary
 var meta := {"comprehension":0, "luck":0, "physique":0}
 var fate: Dictionary = {}
@@ -50,15 +51,34 @@ var attribute_label: Label
 var event_label: Label
 var log_label: Label
 var fate_label: Label
+var fate_chip: Label
+var extra_label: Label
+var area_info_label: Label
+var break_info_label: Label
+var equip_info_label: Label
+var skill_info_label: Label
+var nav_info_label: Label
+var cultivation_bar: ProgressBar
+var hp_bar: ProgressBar
 var scene_text: Label
 var center_title: Label
 var action_buttons: Array[Button] = []
 var modal: Panel
 
+const AVATAR_SHADER_CODE := "shader_type canvas_item;\nvoid fragment() {\n\tvec4 c = texture(TEXTURE, UV);\n\tif (distance(UV, vec2(0.5)) > 0.5) discard;\n\tCOLOR = c;\n}"
+
 func _ready() -> void:
 	randomize()
 	font = SystemFont.new()
 	font.font_names = PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "SimSun", "Arial"])
+	font_title = font
+	if ResourceLoader.exists("res://assets/fonts/LXGWWenKai-Regular.ttf"):
+		font = load("res://assets/fonts/LXGWWenKai-Regular.ttf")
+	if ResourceLoader.exists("res://assets/fonts/MaShanZheng-Regular.ttf"):
+		font_title = load("res://assets/fonts/MaShanZheng-Regular.ttf")
+	var ink := get_node_or_null("InkWorldStage")
+	if ink and ResourceLoader.exists("res://assets/bg_ink_landscape.png"):
+		ink.overlay_only = true
 	_new_life(false)
 	_build_ui()
 	_refresh()
@@ -110,62 +130,145 @@ func _roll_fate() -> Dictionary:
 
 func _build_ui() -> void:
 	queue_redraw()
-	var header:=ColorRect.new(); header.color=Color(Color("#173442"),0.80); header.position=Vector2.ZERO; header.size=Vector2(size.x,76); add_child(header)
-	var title:=_label("寿元将尽",30,Color("#f3ead4")); title.position=Vector2(28,14); title.size=Vector2(190,45); add_child(title)
-	status_label=_label("",17,Color("#e8f0e8")); status_label.position=Vector2(220,15); status_label.size=Vector2(800,45); add_child(status_label)
-	resource_label=_label("",17,Color("#e8d9a6")); resource_label.position=Vector2(1080,17); resource_label.size=Vector2(330,40); add_child(resource_label)
+	# ── 背景大图：手绘水墨山水（InkWorldStage 降级为动态云雾叠加层）──
+	if ResourceLoader.exists("res://assets/bg_ink_landscape.png"):
+		var bg:=TextureRect.new(); bg.texture=load("res://assets/bg_ink_landscape.png"); bg.position=Vector2.ZERO; bg.size=size
+		bg.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; bg.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		bg.mouse_filter=Control.MOUSE_FILTER_IGNORE; bg.z_index=-6
+		add_child(bg)
+	# ── 顶栏：悬浮墨玉长条（头像 / 姓名 / 状态 / 灵石 / 设置）──
+	var top:=_ink_bar(Vector2(16,12),Vector2(1408,58),0.84,28); add_child(top)
+	var avatar:=Panel.new(); avatar.position=Vector2(34,9); avatar.size=Vector2(40,40)
+	var av_s:=StyleBoxFlat.new(); av_s.bg_color=Color("#31576a"); av_s.set_corner_radius_all(20); av_s.border_color=Color(Color("#f3ead4"),0.45); av_s.set_border_width_all(2)
+	avatar.add_theme_stylebox_override("panel",av_s); top.add_child(avatar)
+	if ResourceLoader.exists("res://assets/avatar_linfan.png"):
+		var av_img:=TextureRect.new(); av_img.texture=load("res://assets/avatar_linfan.png")
+		av_img.position=Vector2(4,4); av_img.size=Vector2(32,32)
+		av_img.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; av_img.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		av_img.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		var sh:=Shader.new(); sh.code=AVATAR_SHADER_CODE
+		var mat:=ShaderMaterial.new(); mat.shader=sh; av_img.material=mat
+		avatar.add_child(av_img)
+	else:
+		var av_char:=_label("林",17,Color("#f3ead4")); av_char.position=Vector2.ZERO; av_char.size=Vector2(40,40); av_char.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; av_char.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; avatar.add_child(av_char)
+	var name_label:=_label("林凡",19,Color("#f3ead4")); name_label.position=Vector2(88,15); name_label.size=Vector2(66,28); name_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; top.add_child(name_label)
+	status_label=_label("",16,Color("#dfe8e4")); status_label.position=Vector2(162,15); status_label.size=Vector2(660,28); status_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; top.add_child(status_label)
+	resource_label=_label("",16,Color("#e8d9a6")); resource_label.position=Vector2(950,15); resource_label.size=Vector2(350,28); resource_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; resource_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; top.add_child(resource_label)
+	var settings:=_button("设 置",Vector2(1314,9),Vector2(84,40)); settings.pressed.connect(_show_settings); top.add_child(settings)
 
-	var left:=_panel(Vector2(24,96),Vector2(310,610)); add_child(left)
-	var lt:=_label("这一世",24,Color("#173442")); lt.position=Vector2(22,18); lt.size=Vector2(250,38); left.add_child(lt)
-	fate_label=_label("",16,Color("#5b4931")); fate_label.position=Vector2(22,70); fate_label.size=Vector2(265,125); left.add_child(fate_label)
-	cultivation_label=_label("",17,Color("#254c5a")); cultivation_label.position=Vector2(22,210); cultivation_label.size=Vector2(265,55); left.add_child(cultivation_label)
-	hp_label=_label("",17,Color("#254c5a")); hp_label.position=Vector2(22,270); hp_label.size=Vector2(265,55); left.add_child(hp_label)
-	attribute_label=_label("",15,Color("#30434a")); attribute_label.position=Vector2(22,340); attribute_label.size=Vector2(265,230); left.add_child(attribute_label)
+	# ── 左：角色属性宣纸卡（修为/气血条 + 属性 + 命格 + 永久因果）──
+	var left:=_panel(Vector2(16,84),Vector2(300,532)); add_child(left)
+	var lt:=_title_label("角色属性",20,Color("#173442")); lt.position=Vector2(20,12); lt.size=Vector2(220,32); left.add_child(lt)
+	cultivation_label=_label("",15,Color("#254c5a")); cultivation_label.position=Vector2(20,52); cultivation_label.size=Vector2(260,24); left.add_child(cultivation_label)
+	cultivation_bar=_bar(Vector2(20,82),Vector2(260,12),Color("#31576a")); left.add_child(cultivation_bar)
+	hp_label=_label("",15,Color("#254c5a")); hp_label.position=Vector2(20,102); hp_label.size=Vector2(260,24); left.add_child(hp_label)
+	hp_bar=_bar(Vector2(20,132),Vector2(260,12),Color("#9b4b45")); left.add_child(hp_bar)
+	attribute_label=_label("",15,Color("#30434a")); attribute_label.position=Vector2(20,158); attribute_label.size=Vector2(260,148); left.add_child(attribute_label)
+	fate_label=_label("",14,Color("#5b4931")); fate_label.position=Vector2(20,312); fate_label.size=Vector2(260,118); left.add_child(fate_label)
+	extra_label=_label("",13,Color("#667272")); extra_label.position=Vector2(20,436); extra_label.size=Vector2(260,80); left.add_child(extra_label)
 
-	var center:=_panel(Vector2(354,96),Vector2(680,610)); add_child(center)
-	center_title=_label("青云宗 · 后山",22,Color("#173442")); center_title.position=Vector2(25,18); center_title.size=Vector2(500,38); center.add_child(center_title)
-	var scene_card:=ColorRect.new(); scene_card.color=Color(Color("#c5d6d0"),0.20); scene_card.position=Vector2(25,70); scene_card.size=Vector2(630,225); center.add_child(scene_card)
-	scene_text=_label("云海 · 飞瀑 · 古松 · 灵气\n\n一世只有数十年。\n你准备如何走完这一生？",20,Color("#36535a")); scene_text.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; scene_text.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; scene_text.position=Vector2(50,90); scene_text.size=Vector2(580,170); center.add_child(scene_text)
-	var action_title:=_label("当前行动",19,Color("#173442")); action_title.position=Vector2(25,320); action_title.size=Vector2(200,35); center.add_child(action_title)
-	var b1:=_button("修炼 · 1年",Vector2(25,365),Vector2(195,58)); b1.pressed.connect(_cultivate); center.add_child(b1); action_buttons.append(b1)
-	var b2:=_button("探索 · 1年",Vector2(242,365),Vector2(195,58)); b2.pressed.connect(_explore); center.add_child(b2); action_buttons.append(b2)
-	var b3:=_button("突破",Vector2(459,365),Vector2(196,58)); b3.pressed.connect(_breakthrough); center.add_child(b3); action_buttons.append(b3)
-	var eq:=_button("装备",Vector2(25,440),Vector2(130,48)); eq.pressed.connect(_show_equipment); center.add_child(eq)
-	var sk:=_button("功法",Vector2(170,440),Vector2(130,48)); sk.pressed.connect(_show_skills); center.add_child(sk)
-	var ar:=_button("地图",Vector2(315,440),Vector2(155,48)); ar.pressed.connect(_show_areas); center.add_child(ar)
-	var reinc:=_button("轮回",Vector2(485,440),Vector2(170,48)); reinc.pressed.connect(_reincarnate); center.add_child(reinc)
-	var save:=_button("保存(F5)",Vector2(25,510),Vector2(130,48)); save.pressed.connect(_save); center.add_child(save)
-	var load:=_button("读取(F9)",Vector2(170,510),Vector2(130,48)); load.pressed.connect(_load); center.add_child(load)
-	var restart:=_button("重新开局",Vector2(315,510),Vector2(155,48)); restart.pressed.connect(_restart); center.add_child(restart)
-	var fate_btn:=_button("命格",Vector2(485,510),Vector2(170,48)); fate_btn.pressed.connect(_show_fate); center.add_child(fate_btn)
+	# ── 中：开放式山水主景（无面板遮挡），宗门徽记 + 漂浮事件文字 + 主行动 ──
+	var chip:=_ink_bar(Vector2(346,92),Vector2(208,46),0.78,12); add_child(chip)
+	center_title=_title_label("青云宗 · 后山",19,Color("#f3ead4")); center_title.position=Vector2(14,8); center_title.size=Vector2(184,30); center_title.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; chip.add_child(center_title)
+	fate_chip=_label("",14,Color("#f7f3e8")); fate_chip.position=Vector2(352,148); fate_chip.size=Vector2(340,24); _shadow(fate_chip); add_child(fate_chip)
+	scene_text=_label("云海 · 飞瀑 · 古松 · 灵气\n一世只有数十年，你准备如何走完这一生？",20,Color("#f7f3e8")); scene_text.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; scene_text.position=Vector2(420,176); scene_text.size=Vector2(600,104); _shadow(scene_text); add_child(scene_text)
+	var b1:=_button("修炼 · 1年",Vector2(455,560),Vector2(170,54)); b1.pressed.connect(_cultivate); add_child(b1); action_buttons.append(b1)
+	var b2:=_button("探索 · 1年",Vector2(635,560),Vector2(170,54)); b2.pressed.connect(_explore); add_child(b2); action_buttons.append(b2)
+	var b3:=_button("突　破",Vector2(815,560),Vector2(170,54)); b3.pressed.connect(_breakthrough); add_child(b3); action_buttons.append(b3)
 
-	var right:=_panel(Vector2(1056,96),Vector2(360,610)); add_child(right)
-	var rt:=_label("命运记录",23,Color("#173442")); rt.position=Vector2(20,18); rt.size=Vector2(300,38); right.add_child(rt)
-	event_label=_label("",17,Color("#425455")); event_label.position=Vector2(20,70); event_label.size=Vector2(320,175); right.add_child(event_label)
-	var log_title:=_label("近期日志",19,Color("#173442")); log_title.position=Vector2(20,265); log_title.size=Vector2(300,35); right.add_child(log_title)
-	log_label=_label("",14,Color("#667272")); log_label.position=Vector2(20,310); log_label.size=Vector2(320,245); right.add_child(log_label)
+	# ── 右：当前事件 + 近期日志 ──
+	var right:=_panel(Vector2(1116,84),Vector2(308,270)); add_child(right)
+	var rt:=_title_label("当前事件",18,Color("#173442")); rt.position=Vector2(18,12); rt.size=Vector2(240,30); right.add_child(rt)
+	if ResourceLoader.exists("res://assets/event_ink_spring.png"):
+		var ev_img:=TextureRect.new(); ev_img.texture=load("res://assets/event_ink_spring.png")
+		ev_img.position=Vector2(18,44); ev_img.size=Vector2(272,92)
+		ev_img.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; ev_img.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		ev_img.mouse_filter=Control.MOUSE_FILTER_IGNORE; right.add_child(ev_img)
+		event_label=_label("",15,Color("#425455")); event_label.position=Vector2(18,142); event_label.size=Vector2(272,112); right.add_child(event_label)
+	else:
+		event_label=_label("",15,Color("#425455")); event_label.position=Vector2(18,50); event_label.size=Vector2(272,204); right.add_child(event_label)
+	var right2:=_panel(Vector2(1116,370),Vector2(308,246)); add_child(right2)
+	var log_title:=_title_label("近期日志",18,Color("#173442")); log_title.position=Vector2(18,12); log_title.size=Vector2(240,30); right2.add_child(log_title)
+	log_label=_label("",13,Color("#667272")); log_label.position=Vector2(18,48); log_label.size=Vector2(272,188); right2.add_child(log_label)
 
-	var nav:=ColorRect.new(); nav.color=Color(Color("#173442"),0.86); nav.position=Vector2(0,730); nav.size=Vector2(size.x,170); add_child(nav)
-	var nav_items=["角色","修炼","探索","战斗","装备","功法","命格","轮回"]
+	# ── 底部行动卡：修炼 / 探索 / 突破 / 装备 / 功法 / 系统 ──
+	var card_defs: Array[String] = ["修炼","探索","突破","装备","功法","系统"]
+	for i in card_defs.size():
+		var cp:=_panel(Vector2(36+i*230,624),Vector2(218,148)); add_child(cp)
+		var ct:=_title_label(card_defs[i],17,Color("#173442")); ct.position=Vector2(16,10); ct.size=Vector2(180,28); cp.add_child(ct)
+		var info:=_label("",13,Color("#667272")); info.position=Vector2(16,40); info.size=Vector2(186,46); cp.add_child(info)
+		match card_defs[i]:
+			"修炼":
+				info.text="静修一年，吐纳灵气。"
+				var cb:=_button("修炼 · 1年",Vector2(16,92),Vector2(186,44)); cb.pressed.connect(_cultivate); cp.add_child(cb); action_buttons.append(cb)
+			"探索":
+				area_info_label=info
+				var eb:=_button("探索 · 1年",Vector2(16,92),Vector2(186,44)); eb.pressed.connect(_explore); cp.add_child(eb); action_buttons.append(eb)
+			"突破":
+				break_info_label=info
+				var bb:=_button("突　破",Vector2(16,92),Vector2(186,44)); bb.pressed.connect(_breakthrough); cp.add_child(bb); action_buttons.append(bb)
+			"装备":
+				equip_info_label=info
+				var qb:=_button("装　备",Vector2(16,92),Vector2(186,44)); qb.pressed.connect(_show_equipment); cp.add_child(qb)
+			"功法":
+				skill_info_label=info
+				var gb:=_button("功　法",Vector2(16,92),Vector2(186,44)); gb.pressed.connect(_show_skills); cp.add_child(gb)
+			"系统":
+				info.text="因果长存，随时归来。"
+				var sv:=_button("保存",Vector2(16,92),Vector2(57,44)); sv.pressed.connect(_save); cp.add_child(sv)
+				var ld:=_button("读取",Vector2(77,92),Vector2(57,44)); ld.pressed.connect(_load); cp.add_child(ld)
+				var rs:=_button("重开",Vector2(138,92),Vector2(64,44)); rs.pressed.connect(_restart); cp.add_child(rs)
+
+	# ── 底部导航：墨玉浮条 + 下一世 ──
+	var nav:=_ink_bar(Vector2(16,786),Vector2(1408,100),0.88,24); add_child(nav)
+	var nav_items: Array[String] = ["角色","修炼","探索","战斗","装备","功法","命格","轮回"]
+	var logo:=_title_label("寿元将尽",24,Color("#f3ead4")); logo.position=Vector2(28,8); logo.size=Vector2(200,40); logo.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; nav.add_child(logo)
+	var footer:=_label("一世轮回，道途无尽",12,Color("#9fb4b8")); footer.position=Vector2(30,52); footer.size=Vector2(200,24); nav.add_child(footer)
+	var nav_x := 236
 	for i in nav_items.size():
-		var nb:=_button(nav_items[i],Vector2(35+i*177,775),Vector2(150,54)); add_child(nb)
+		var nb:=_button(nav_items[i],Vector2(nav_x+i*109,12),Vector2(100,46)); nav.add_child(nb)
 		match nav_items[i]:
+			"修炼": nb.pressed.connect(_cultivate)
 			"探索": nb.pressed.connect(_show_areas)
+			"战斗": nb.pressed.connect(_show_battle_info)
 			"装备": nb.pressed.connect(_show_equipment)
 			"功法": nb.pressed.connect(_show_skills)
 			"命格": nb.pressed.connect(_show_fate)
 			"轮回": nb.pressed.connect(_reincarnate)
-			"战斗": nb.pressed.connect(_show_battle_info)
-	var footer:=_label("一世轮回，道途无尽",16,Color("#d7dfd7")); footer.position=Vector2(50,850); footer.size=Vector2(300,30); add_child(footer)
+	nav_info_label=_label("",14,Color("#e8d9a6")); nav_info_label.position=Vector2(1112,17); nav_info_label.size=Vector2(130,36); nav_info_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; nav.add_child(nav_info_label)
+	var next_life:=_button("下一世 ▶",Vector2(1250,12),Vector2(154,46)); next_life.pressed.connect(_reincarnate); nav.add_child(next_life)
 
 func _label(text:String,size_px:int,color:Color)->Label:
 	var l:=Label.new(); l.text=text; l.add_theme_font_override("font",font); l.add_theme_font_size_override("font_size",size_px); l.add_theme_color_override("font_color",color); l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; return l
+
+func _title_label(text:String,size_px:int,color:Color)->Label:
+	# 标题/徽记用书法字体，正文用文楷。
+	var l:=_label(text,size_px,color); l.add_theme_font_override("font",font_title); return l
 
 func _panel(pos:Vector2,panel_size:Vector2)->Panel:
 	var p:=Panel.new(); p.position=pos; p.size=panel_size
 	var s:=StyleBoxFlat.new(); s.bg_color=Color(0.96,0.94,0.88,0.92); s.border_color=Color("#a89f8b"); s.set_border_width_all(1); s.set_corner_radius_all(12)
 	s.shadow_color=Color(0.05,0.10,0.10,0.18); s.shadow_size=10; s.shadow_offset=Vector2(0,4)
 	p.add_theme_stylebox_override("panel",s); return p
+
+func _ink_bar(pos:Vector2,bar_size:Vector2,alpha:float,radius:int)->Panel:
+	var p:=Panel.new(); p.position=pos; p.size=bar_size
+	var s:=StyleBoxFlat.new(); s.bg_color=Color(Color("#1c3644"),alpha); s.set_corner_radius_all(radius)
+	s.border_color=Color(Color("#3d5a66"),0.6); s.set_border_width_all(1)
+	s.shadow_color=Color(0.05,0.10,0.10,0.25); s.shadow_size=8; s.shadow_offset=Vector2(0,3)
+	p.add_theme_stylebox_override("panel",s); return p
+
+func _bar(pos:Vector2,bar_size:Vector2,fill:Color)->ProgressBar:
+	var pb:=ProgressBar.new(); pb.position=pos; pb.size=bar_size; pb.show_percentage=false
+	var bg:=StyleBoxFlat.new(); bg.bg_color=Color(0.10,0.20,0.22,0.18); bg.set_corner_radius_all(6)
+	var fg:=StyleBoxFlat.new(); fg.bg_color=fill; fg.set_corner_radius_all(6)
+	pb.add_theme_stylebox_override("background",bg); pb.add_theme_stylebox_override("fill",fg)
+	return pb
+
+func _shadow(l:Label)->void:
+	l.add_theme_color_override("font_shadow_color",Color(0.07,0.16,0.20,0.6))
+	l.add_theme_constant_override("shadow_offset_x",1)
+	l.add_theme_constant_override("shadow_offset_y",2)
 
 func _button(text:String,pos:Vector2,button_size:Vector2)->Button:
 	var b:=Button.new(); b.text=text; b.position=pos; b.size=button_size; b.add_theme_font_override("font",font); b.add_theme_font_size_override("font_size",15)
@@ -182,18 +285,41 @@ func _button(text:String,pos:Vector2,button_size:Vector2)->Button:
 
 func _refresh()->void:
 	var atk:=_attack(); var defense:=_defense()
-	status_label.text="%s    %d岁/%d岁    余寿 %d年    %s · %d层" % [player.name,player.age,player.max_age,player.max_age-player.age,REALMS[player.realm],player.level]
-	resource_label.text="◆ %d 灵石    ◇ 第 %d 世" % [player.stones,player.life_no]
-	cultivation_label.text="修为\n%d / %d" % [player.cultivation,player.required]
-	hp_label.text="气血\n%d / %d" % [player.hp,player.max_hp]
-	attribute_label.text="攻击      %d\n防御      %d\n悟性      %d\n气运      %d\n体质      %d\n\n装备：%d件\n功法：%s\n\n永久因果\n悟性 +%d   气运 +%d   体质 +%d" % [atk,defense,player.comprehension,player.luck,player.physique,owned_equipment.size(),", ".join(skills),meta.comprehension,meta.luck,meta.physique]
-	fate_label.text="命格 · %s\n\n%s\n\n效果：悟性 %+d  气运 %+d  体质 %+d  寿元 %+d" % [fate.name,fate.desc,fate.comp,fate.luck,fate.physique,fate.age]
-	log_label.text="\n\n".join(logs)
+	status_label.text="%d岁 / %d岁    余寿 %d年    %s · %d层" % [player.age,player.max_age,player.max_age-player.age,REALMS[player.realm],player.level]
+	resource_label.text="◆ %d 灵石    第 %d 世" % [player.stones,player.life_no]
+	cultivation_label.text="修为　%d / %d" % [player.cultivation,player.required]
+	cultivation_bar.max_value=player.required; cultivation_bar.value=player.cultivation
+	hp_label.text="气血　%d / %d" % [player.hp,player.max_hp]
+	hp_bar.max_value=player.max_hp; hp_bar.value=player.hp
+	attribute_label.text="攻击　%d\n防御　%d\n悟性　%d\n气运　%d\n体质　%d\n装备　%d 件 · 功法 %s" % [atk,defense,player.comprehension,player.luck,player.physique,owned_equipment.size(),", ".join(skills)]
+	fate_label.text="命格 · %s\n%s\n\n效果：悟性 %+d  气运 %+d  体质 %+d  寿元 %+d" % [fate.name,fate.desc,fate.comp,fate.luck,fate.physique,fate.age]
+	fate_chip.text="命格 · %s　|　外门弟子" % fate.name
+	extra_label.text="永久因果\n悟性 +%d　气运 +%d　体质 +%d" % [meta.comprehension,meta.luck,meta.physique]
+	log_label.text="\n".join(logs)
+	equip_info_label.text="已装备 %d 件 · 背包 %d 件" % [equipped_usage(),owned_equipment.size()]
+	skill_info_label.text="已修习 %d 门" % skills.size()
+	area_info_label.text="%s · 危险 %d" % [AREAS[selected_area].name,AREAS[selected_area].risk]
+	break_info_label.text=("轮回后可突破" if player.dead else ("✦ 修为已满，可突破！" if player.cultivation>=player.required else "还差 %d 点修为" % (player.required-player.cultivation)))
+	nav_info_label.text="第 %d 世 · 因果 %d" % [player.life_no,meta.comprehension+meta.luck+meta.physique]
 	for b in action_buttons: b.disabled=player.dead
 	if player.dead:
 		event_label.text="这一世已经结束。\n\n最终境界：%s · %d层\n\n点击【轮回】继承因果。" % [REALMS[player.realm],player.level]
 	else:
 		event_label.text="命格【%s】\n\n%s\n\n当前地区：%s" % [fate.name,fate.desc,AREAS[selected_area].name]
+
+func equipped_usage()->int:
+	var n:=0
+	for e in equipped.values():
+		if not e.is_empty(): n+=1
+	return n
+
+func _show_settings()->void:
+	modal=_panel(Vector2(560,240),Vector2(320,330)); modal.z_index=30; add_child(modal)
+	var t:=_label("设置",22,Color("#173442")); t.position=Vector2(20,16); t.size=Vector2(200,34); modal.add_child(t)
+	var b1:=_button("保存进度 (F5)",Vector2(24,70),Vector2(272,50)); b1.pressed.connect(_save); modal.add_child(b1)
+	var b2:=_button("读取进度 (F9)",Vector2(24,132),Vector2(272,50)); b2.pressed.connect(_load); modal.add_child(b2)
+	var b3:=_button("重新开局",Vector2(24,194),Vector2(272,50)); b3.pressed.connect(_restart); modal.add_child(b3)
+	var cl:=_button("关闭",Vector2(24,256),Vector2(272,50)); cl.pressed.connect(func(): modal.queue_free()); modal.add_child(cl)
 
 func _attack()->int:
 	var value:=int(player.attack)
